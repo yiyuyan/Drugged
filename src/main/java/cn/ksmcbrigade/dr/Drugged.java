@@ -1,6 +1,9 @@
 package cn.ksmcbrigade.dr;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.commands.Commands;
 import net.minecraft.nbt.CompoundTag;
@@ -24,6 +27,9 @@ import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -32,14 +38,19 @@ import java.util.Objects;
 @Mod.EventBusSubscriber
 public class Drugged {
 
+    public static File config = new File("config/dr-config.json");
     public static int exp = 2;
 
-    public Drugged() {
+    public Drugged() throws IOException{
         MinecraftForge.EVENT_BUS.register(this);
+        if(!config.exists()){
+            save();
+        }
+        exp = JsonParser.parseString(Files.readString(config.toPath())).getAsJsonObject().get("exp").getAsInt();
     }
 
     @SubscribeEvent
-    public static void command(RegisterCommandsEvent event){
+    public static void commands(RegisterCommandsEvent event){
         event.getDispatcher().register(Commands.literal("drugged").executes(context -> {
             Player entity = (Player)context.getSource().getEntity();
             if(entity!=null){
@@ -107,6 +118,39 @@ public class Drugged {
             }
             return 0;
         })));
+
+        event.getDispatcher().register(Commands.literal("dr-clear").executes(context -> {
+            Player entity = (Player) context.getSource().getEntity();
+            if(entity!=null){
+                if(entity.getMainHandItem().isEmpty()){
+                    entity.sendMessage(new TranslatableComponent("commands.dr.empty"),entity.getUUID());
+                }
+                else if(entity.experienceLevel>=exp){
+                    try {
+                        Objects.requireNonNull(entity.getMainHandItem().getTag()).remove("drugged");
+                        entity.getMainHandItem().getTag().remove("druggedHide");
+                        entity.giveExperienceLevels(-exp);
+                    }
+                    catch (Exception e){
+                        System.out.println("Exception: "+e.getMessage());
+                    }
+                }
+                else{
+                    entity.sendMessage(Component.nullToEmpty(I18n.get("commands.dr.cannot_xp").replace("{x}",String.valueOf(exp))),entity.getUUID());
+                }
+            }
+            return 0;
+        }));
+
+        event.getDispatcher().register(Commands.literal("dr-config").then(Commands.argument("exp", IntegerArgumentType.integer()).executes(context -> {
+            try {
+                exp = IntegerArgumentType.getInteger(context,"exp");
+                save();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return 0;
+        })));
     }
 
     @SubscribeEvent
@@ -136,5 +180,11 @@ public class Drugged {
             }
         }
         return componentList;
+    }
+
+    public static void save() throws IOException{
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("exp",exp);
+        Files.writeString(config.toPath(),jsonObject.toString());
     }
 }
