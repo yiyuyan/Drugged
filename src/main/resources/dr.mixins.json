@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "cn.ksmcbrigade.dr.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "dr.refmap.json",
+  "mixins": [
+    "ItemMixin",
+    "ItemTooltipMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

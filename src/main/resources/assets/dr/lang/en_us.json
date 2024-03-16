@@ -1,0 +1,4 @@
+{
+  "commands.dr.empty": "Main item/Off main item is empty or the off item type isn't potions.",
+  "commands.dr.cannot_xp": "Requires at least {x} experience to be able to use this command."
+}
